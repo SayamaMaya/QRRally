@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>店内スタンプラリー</title>
+    <title>書泉バーチャルボイスラリー</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,11 +17,13 @@
             color: #000;
         }
         .stamp-slot {
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
         }
         .stamp-active {
-            background-color: #000;
-            border-color: #000;
+            background-color: #000 !important;
+            border-color: #000 !important;
+            color: #fff !important;
         }
         #video-container {
             position: relative;
@@ -31,236 +33,326 @@
             border: 2px solid #000;
         }
         #scanner-line {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 2px;
+            position: absolute; left: 0; top: 0; width: 100%; height: 2px;
             background: rgba(255, 255, 255, 0.5);
             animation: scan 3s linear infinite;
         }
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
         #video-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #000;
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000; z-index: 500; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
         }
-        #ar-video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        #ar-video { width: 100%; height: 100%; object-fit: contain; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 450; display: none;
+            justify-content: center; align-items: center; padding: 20px;
         }
-        #play-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 150;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+        #start-experience-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 600; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
         }
         #close-video {
-            position: absolute;
-            bottom: 40px;
-            z-index: 110;
+            position: absolute; top: 20px; right: 20px; width: 44px; height: 44px;
+            background: rgba(0,0,0,0.5); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            z-index: 510; cursor: pointer; border: 1px solid rgba(255,255,255,0.3);
         }
     </style>
 </head>
 <body class="flex flex-col items-center min-h-screen p-4">
 
+    <!-- 開始オーバーレイ -->
+    <div id="start-experience-overlay">
+        <div class="text-center p-8">
+            <h2 class="text-xl font-bold mb-4">書泉バーチャルボイスラリー</h2>
+            <p class="text-sm text-gray-500 mb-8 leading-relaxed">
+                カメラの使用を許可して
+                <br>ラリーを開始してください。
+                <br>※音が出ます
+                <br>※周りのご迷惑にならないよう遊んでね
+            </p>
+            <button id="camera-init-btn" class="px-12 py-4 bg-black text-white rounded-full font-bold shadow-xl">
+                ラリー開始
+            </button>
+        </div>
+    </div>
+
     <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-lg overflow-hidden border border-gray-100">
-        <div class="p-8 text-center">
-            <h1 class="text-2xl font-bold tracking-tight">店内スタンプラリー</h1>
-            <p class="text-[11px] text-gray-400 mt-2 font-medium">スポットのQRを読み込んでください</p>
+        <div class="p-6 text-center">
+            <h1 class="text-2xl font-bold tracking-tight">書泉バーチャルボイスラリー</h1>
+            <p class="text-[11px] text-gray-400 mt-2 font-medium">取得したスタンプをタップで動画を再生</p>
         </div>
 
-        <div class="px-8 pb-8">
-            <div class="flex justify-around mb-10">
-                <div id="stamp-1" class="stamp-slot w-20 h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white">
-                    <span class="text-[10px] font-bold">Spot 1</span>
-                </div>
-                <div id="stamp-2" class="stamp-slot w-20 h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white">
-                    <span class="text-[10px] font-bold">Spot 2</span>
-                </div>
-                <div id="stamp-3" class="stamp-slot w-20 h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white">
-                    <span class="text-[10px] font-bold">Spot 3</span>
-                </div>
+        <div class="px-6 pb-8">
+            <div id="stamps-grid" class="grid grid-cols-4 gap-3 mb-8">
+                <div id="stamp-1" onclick="replayVideo('stamp1')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-2" onclick="replayVideo('stamp2')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-3" onclick="replayVideo('stamp3')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-4" onclick="replayVideo('stamp4')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-5" onclick="replayVideo('stamp5')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-6" onclick="replayVideo('stamp6')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-7" onclick="replayVideo('stamp7')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
+                <div id="stamp-8" onclick="replayVideo('stamp8')" class="stamp-slot aspect-square rounded-xl border-2 border-gray-100 flex items-center justify-center text-gray-200 bg-white"></div>
             </div>
 
             <div id="scanner-view">
                 <div id="video-container" class="aspect-square w-full mb-8">
-                    <video id="scan-camera" class="w-full h-full object-cover" playsinline></video>
+                    <video id="scan-camera" class="w-full h-full object-cover" playsinline muted></video>
                     <canvas id="qr-canvas" class="hidden"></canvas>
                     <div id="scanner-line"></div>
                 </div>
             </div>
 
-            <div id="message" class="mt-6 p-4 rounded-2xl text-center text-sm font-bold hidden bg-[#fcfcfc] text-black border-2 border-black"></div>
-
             <div id="success-view" class="hidden text-center py-12 bg-[#fcfcfc] rounded-[2.5rem] border border-gray-100">
                 <h2 class="text-2xl font-bold text-black mb-4">コンプリート！</h2>
-                <a href="https://sayama-maya-photframe.netlify.app/" target="_blank" class="inline-block btn-black px-12 py-4 rounded-full font-bold shadow-xl text-sm text-white bg-black">特典を受け取る</a>
+                <a href="https://sayama-maya-photframe.netlify.app/" target="_blank" class="inline-block px-12 py-4 rounded-full font-bold shadow-xl text-sm text-white bg-black">特典を受け取る</a>
             </div>
         </div>
     </div>
 
-    <!-- 音声制限解除用モーダル -->
-    <div id="play-modal">
-        <div class="bg-white p-8 rounded-[2rem] text-center max-w-xs w-full">
-            <p class="font-bold mb-6 text-lg">スタンプ発見！</p>
-            <p class="text-sm text-gray-500 mb-6">動画を再生します</p>
-            <button id="start-video-btn" class="w-full py-4 bg-black text-white rounded-full font-bold shadow-lg">動画を再生する</button>
+    <!-- 発見モーダル -->
+    <div id="play-modal" class="modal-overlay">
+        <div class="bg-white p-8 rounded-[2rem] text-center max-w-xs w-full shadow-2xl">
+            <p class="font-bold mb-6 text-lg">バーチャルスタッフ発見！</p>
+            <p class="text-sm text-gray-500 mb-6">キーワードを聞いてね</p>
+            <button id="start-video-btn" class="w-full py-4 bg-black text-white rounded-full font-bold shadow-lg">研修を開始する</button>
         </div>
     </div>
 
-    <!-- 全画面動画再生オーバーレイ -->
+    <!-- キーワード入力モーダル -->
+    <div id="keyword-modal" class="modal-overlay">
+        <div class="bg-white p-8 rounded-[2rem] text-center max-w-xs w-full shadow-2xl">
+            <p class="font-bold mb-4 text-lg">キーワードを入力</p>
+            <p class="text-[11px] text-gray-400 mb-6">スタッフから聞いたキーワードは？</p>
+            <input type="text" id="keyword-input" class="w-full border-2 border-gray-100 rounded-xl p-3 mb-6 text-center text-xl font-bold focus:border-black outline-none" placeholder="ここに入力">
+            <button id="submit-keyword-btn" class="w-full py-4 bg-black text-white rounded-full font-bold shadow-lg">スタンプを押す</button>
+            <button id="cancel-keyword-btn" class="mt-4 text-gray-400 text-sm font-medium">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 誤入力エラーモーダル -->
+    <div id="error-modal" class="modal-overlay">
+        <div class="bg-white p-8 rounded-[2rem] text-center max-w-xs w-full shadow-2xl border-2 border-red-500">
+            <p class="font-bold mb-4 text-lg text-red-600">キーワードが違うよ</p>
+            <p class="text-sm text-gray-600 mb-6">もう一度よく聞いてみてね</p>
+            <button id="retry-btn" class="w-full py-4 bg-black text-white rounded-full font-bold shadow-lg">OK</button>
+        </div>
+    </div>
+
+    <!-- 動画再生オーバーレイ -->
     <div id="video-overlay">
-        <video id="ar-video" playsinline></video>
-        <button id="close-video" class="px-10 py-3 bg-white text-black rounded-full font-bold text-sm shadow-2xl">閉じる</button>
+        <div id="close-video" onclick="closeVideoManually()">×</div>
+        <video id="ar-video" playsinline controls></video>
     </div>
 
     <script>
         const scanCamera = document.getElementById('scan-camera');
         const qrCanvas = document.getElementById('qr-canvas');
         const qrCtx = qrCanvas.getContext('2d', { willReadFrequently: true });
-        
         const videoOverlay = document.getElementById('video-overlay');
         const arVideo = document.getElementById('ar-video');
+        
         const playModal = document.getElementById('play-modal');
         const startVideoBtn = document.getElementById('start-video-btn');
-        const closeVideoBtn = document.getElementById('close-video');
         
-        const messageBox = document.getElementById('message');
+        const keywordModal = document.getElementById('keyword-modal');
+        const keywordInput = document.getElementById('keyword-input');
+        const submitKeywordBtn = document.getElementById('submit-keyword-btn');
+        const cancelKeywordBtn = document.getElementById('cancel-keyword-btn');
+
+        const errorModal = document.getElementById('error-modal');
+        const retryBtn = document.getElementById('retry-btn');
+
+        const entryOverlay = document.getElementById('start-experience-overlay');
+        const cameraInitBtn = document.getElementById('camera-init-btn');
         const successView = document.getElementById('success-view');
         const scannerView = document.getElementById('scanner-view');
 
-        const targetKeywords = ['stamp1', 'stamp2', 'stamp3'];
-        const stampCharacters = { 'stamp1': 'み', 'stamp2': 'ら', 'stamp3': 'い' };
-        
-        // 各キーワードに対応する動画URL
-        const videoUrls = {
-            'stamp1': 'https://www.dropbox.com/scl/fi/u8mfjfxehr3hq77i91x9q/Mi.mov?rlkey=hot7x01ut2vcwsu89ap6v0gl0&st=mgvxtvi2&raw=1',
-            'stamp2': 'https://www.dropbox.com/scl/fi/tdgb9tvwmmslbkb88yr1d/ra.mov?rlkey=r2hiq48rtiy421xn47neah4wv&st=7basxv6h&raw=1',
-            'stamp3': 'https://www.dropbox.com/scl/fi/8o19jbjjti8rfcyw149k4/i.mov?rlkey=64x3lvsswzgva40o9bi2cwxqx&st=5v0stn02&raw=1'
+        const STORAGE_KEY = 'shosen_rally_progress_v12';
+        const STARTED_KEY = 'shosen_rally_started_v12';
+
+        const stampCharacters = { 
+            'stamp1': 'し', 'stamp2': 'ょ', 'stamp3': 'せ', 'stamp4': 'ん', 
+            'stamp5': 'は', 'stamp6': 'す', 'stamp7': 'ご', 'stamp8': 'い' 
         };
 
-        let stampsCollected = { 'stamp1': false, 'stamp2': false, 'stamp3': false };
+        const OP_VIDEO_URL = 'https://www.dropbox.com/scl/fi/0bjv3kyiz0vvh2xuqfa46/OP.mov?rlkey=ddyl31tep2axohxvvv6vrox99&st=yzayixjm&raw=1';
+        const COMPLETE_VIDEO_URL = 'https://www.dropbox.com/scl/fi/0bjv3kyiz0vvh2xuqfa46/OP.mov?rlkey=ddyl31tep2axohxvvv6vrox99&st=yzayixjm&raw=1';
+
+        const videoUrls = {
+            'stamp1': 'https://www.dropbox.com/scl/fi/ufdltg6k32933aw81m8bs/1F.mov?rlkey=hqkezcgr4ok697vbpipzi36jc&st=xnmuqycb&raw=1',
+            'stamp2': 'https://www.dropbox.com/scl/fi/yhk2pskvldgtvnbwhwroo/2-_.mp4?rlkey=lgrm0zexvl9uk0yculq9jy856&st=knfyt0y1&raw=1',
+            'stamp3': 'https://www.dropbox.com/scl/fi/l0ke72jm2s8j4hozwm8pi/3-_.mp4?rlkey=5pitpedpc9l9yybnkitxgolhh&st=879470eo&raw=1',
+            'stamp4': 'https://www.dropbox.com/scl/fi/mvjbqepqy3nku1hkk7bzl/4-_.mp4?rlkey=j29nxxpdc5pp4qzavi1iccycp&st=gxusel12&raw=1',
+            'stamp5': 'https://www.dropbox.com/scl/fi/79ylkutoihtiox0rq2nk9/5-_.mp4?rlkey=lfgfsuufh224mgg6cbtm279tp&st=3yymcm74&raw=1',
+            'stamp6': 'https://www.dropbox.com/scl/fi/9b56uizb2xzg3v8kof8hk/6-_.mp4?rlkey=1svrnmkd0v33r3a2iesv4d03t&st=9aa5myc8&raw=1',
+            'stamp7': 'https://www.dropbox.com/scl/fi/jsjj49vhsoru0dpncagi6/7-_.mp4?rlkey=nd31drwphe15qfwn3p76ksfpv&st=fzaiacac&raw=1',
+            'stamp8': 'https://www.dropbox.com/scl/fi/0uys8v89awjl5qrmyk8l0/8F.mov?rlkey=tmyrsv31hz543yd779h9tbuun&st=vimso6cj&raw=1'
+        };
+
+        let stampsCollected = { 
+            'stamp1': false, 'stamp2': false, 'stamp3': false, 'stamp4': false,
+            'stamp5': false, 'stamp6': false, 'stamp7': false, 'stamp8': false 
+        };
+
         let stream = null;
         let scanId = null;
-        let currentKeyword = null;
+        let currentTarget = null;
 
-        async function init() {
+        function syncUI() {
+            Object.keys(stampsCollected).forEach(id => {
+                const num = id.replace('stamp', '');
+                const slot = document.getElementById(`stamp-${num}`);
+                if (!slot) return;
+                if (stampsCollected[id]) {
+                    slot.classList.add('stamp-active');
+                    slot.innerHTML = `<span class="text-3xl font-bold">${stampCharacters[id]}</span>`;
+                } else {
+                    slot.classList.remove('stamp-active');
+                    slot.innerHTML = `<span class="text-[8px] font-bold">Spot ${num}</span>`;
+                }
+            });
+            if (Object.values(stampsCollected).every(v => v)) showComplete();
+        }
+
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try { stampsCollected = JSON.parse(saved); } catch(e){}
+        }
+        syncUI();
+
+        cameraInitBtn.onclick = async () => {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 scanCamera.srcObject = stream;
-                scanCamera.play();
-                scanId = requestAnimationFrame(scanTick);
-            } catch (err) {
-                console.error("Camera access failed:", err);
-            }
+                await scanCamera.play();
+                localStorage.setItem(STARTED_KEY, 'true');
+                entryOverlay.style.display = 'none';
+                playVideo(OP_VIDEO_URL, 'opening');
+            } catch (err) { console.error(err); }
+        };
+
+        if (localStorage.getItem(STARTED_KEY) === 'true') {
+            entryOverlay.style.display = 'none';
+            initCameraAuto();
+        }
+
+        async function initCameraAuto() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                scanCamera.srcObject = stream;
+                await scanCamera.play();
+                if (!scanId) scanId = requestAnimationFrame(scanTick);
+            } catch (e) { console.error(e); }
         }
 
         function scanTick() {
+            if (!stream) return;
             if (scanCamera.readyState === scanCamera.HAVE_ENOUGH_DATA) {
                 qrCanvas.height = scanCamera.videoHeight;
                 qrCanvas.width = scanCamera.videoWidth;
                 qrCtx.drawImage(scanCamera, 0, 0, qrCanvas.width, qrCanvas.height);
                 const imageData = qrCtx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) { handleScan(code.data); }
+                if (code) handleScan(code.data);
             }
-            if (videoOverlay.style.display !== 'flex' && playModal.style.display !== 'flex') {
-                scanId = requestAnimationFrame(scanTick);
-            }
+            if (videoOverlay.style.display !== 'flex' && playModal.style.display !== 'flex' && 
+                keywordModal.style.display !== 'flex' && errorModal.style.display !== 'flex') {
+                setTimeout(() => { scanId = requestAnimationFrame(scanTick); }, 300);
+            } else { scanId = null; }
         }
 
         function handleScan(data) {
-            targetKeywords.forEach(keyword => {
-                if (data.includes(keyword) && !stampsCollected[keyword]) {
-                    currentKeyword = keyword;
+            Object.keys(stampsCollected).forEach(id => {
+                if (data.includes(id) && !stampsCollected[id]) {
+                    currentTarget = id;
                     playModal.style.display = 'flex';
                 }
             });
         }
 
-        startVideoBtn.onclick = () => {
-            if (!currentKeyword) return;
-
-            playModal.style.display = 'none';
-            videoOverlay.style.display = 'flex';
-            
-            // 該当する動画ソースを設定
-            arVideo.src = videoUrls[currentKeyword];
-            arVideo.currentTime = 0;
-            arVideo.muted = false;
-            
-            arVideo.play().catch(err => {
-                console.error("Playback failed:", err);
-                closeVideo();
-            });
-
-            if (!stampsCollected[currentKeyword]) {
-                stampsCollected[currentKeyword] = true;
-                updateStampUI(currentKeyword);
-                showMessage("スタンプを獲得！");
+        window.replayVideo = function(id) {
+            if (stampsCollected[id]) {
+                playVideo(videoUrls[id], 'replay');
             }
         };
 
-        function closeVideo() {
+        async function playVideo(url, type) {
+            videoOverlay.style.display = 'flex';
+            arVideo.src = url;
+            arVideo.dataset.videoType = type;
+            try { await arVideo.play(); } catch (e) {}
+        }
+
+        function closeVideoManually() {
+            handleVideoClose();
+        }
+
+        arVideo.onended = () => handleVideoClose();
+        
+        function handleVideoClose() {
+            const type = arVideo.dataset.videoType;
             arVideo.pause();
-            arVideo.src = ""; // リソースを解放
+            arVideo.src = "";
             videoOverlay.style.display = 'none';
-            playModal.style.display = 'none';
-            if (allCollected()) {
-                showComplete();
+            
+            if (type === 'normal') {
+                keywordInput.value = "";
+                keywordModal.style.display = 'flex';
             } else {
-                scanId = requestAnimationFrame(scanTick);
+                if (Object.values(stampsCollected).every(v => v) && type !== 'replay') {
+                    showComplete();
+                } else if (!scanId) {
+                    scanId = requestAnimationFrame(scanTick);
+                }
             }
         }
 
-        arVideo.onended = closeVideo;
-        closeVideoBtn.onclick = closeVideo;
+        startVideoBtn.onclick = () => {
+            if (!currentTarget) return;
+            playModal.style.display = 'none';
+            playVideo(videoUrls[currentTarget], 'normal');
+        };
 
-        function updateStampUI(id) {
-            const num = id.replace('stamp', '');
-            const slot = document.getElementById(`stamp-${num}`);
-            slot.classList.remove('text-gray-200', 'bg-white');
-            slot.classList.add('stamp-active', 'border-black');
-            slot.innerHTML = `<span class="text-3xl font-bold text-white">${stampCharacters[id]}</span>`;
-        }
+        submitKeywordBtn.onclick = () => {
+            if (!currentTarget) return;
+            const input = keywordInput.value.trim();
+            if (input === stampCharacters[currentTarget]) {
+                stampsCollected[currentTarget] = true;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(stampsCollected));
+                keywordModal.style.display = 'none';
+                syncUI();
+                
+                if (Object.values(stampsCollected).every(v => v)) {
+                    playVideo(COMPLETE_VIDEO_URL, 'complete');
+                } else if (!scanId) {
+                    scanId = requestAnimationFrame(scanTick);
+                }
+            } else {
+                keywordModal.style.display = 'none';
+                errorModal.style.display = 'flex';
+            }
+        };
 
-        function showMessage(text) {
-            messageBox.textContent = text;
-            messageBox.classList.remove('hidden');
-            setTimeout(() => messageBox.classList.add('hidden'), 3000);
-        }
+        retryBtn.onclick = () => {
+            errorModal.style.display = 'none';
+            playModal.style.display = 'flex'; // 「研修を開始する」モーダルに戻る
+        };
 
-        function allCollected() {
-            return Object.values(stampsCollected).every(v => v);
-        }
+        cancelKeywordBtn.onclick = () => {
+            keywordModal.style.display = 'none';
+            currentTarget = null;
+            if (!scanId) scanId = requestAnimationFrame(scanTick);
+        };
 
         function showComplete() {
             scannerView.classList.add('hidden');
             successView.classList.remove('hidden');
             if (stream) stream.getTracks().forEach(t => t.stop());
         }
-
-        init();
     </script>
 </body>
 </html>
